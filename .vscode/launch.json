@@ -11,14 +11,9 @@
       "remoteRoot": "/var/task",
       "protocol": "inspector",
       "stopOnEntry": false,
-      "outFiles": [
-        "${workspaceFolder}/.aws-sam/build/MyFunction/**/*.js"
-      ],
+      "outFiles": ["${workspaceFolder}/.aws-sam/build/MyFunction/**/*.js"],
       "sourceMaps": true,
-      "skipFiles": [
-        "/var/runtime/**/*.js",
-        "<node_internals>/**/*.js"
-      ]
+      "skipFiles": ["/var/runtime/**/*.js", "<node_internals>/**/*.js"]
     }
   ]
 }

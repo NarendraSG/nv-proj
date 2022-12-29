@@ -18,7 +18,7 @@ export const lambdaHandler = async (
     response = {
       statusCode: 200,
       body: JSON.stringify({
-        message: `hello world from function1`,
+        message: `hello from function1`,
       }),
     };
   } catch (err: unknown) {

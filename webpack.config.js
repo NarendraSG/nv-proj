@@ -1,6 +1,5 @@
 const path = require("path");
 const AwsSamPlugin = require("aws-sam-webpack-plugin");
-const CopyPlugin = require("copy-webpack-plugin");
 const awsSamPlugin = new AwsSamPlugin();
 
 module.exports = {
@@ -40,13 +39,5 @@ module.exports = {
   },
 
   // Add the AWS SAM Webpack plugin
-  plugins: [
-    awsSamPlugin,
-    new CopyPlugin({
-      patterns: [
-        { from: "source", to: "dest" },
-        { from: "other", to: "public" },
-      ],
-    }),
-  ],
+  plugins: [awsSamPlugin],
 };

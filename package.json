@@ -8,7 +8,8 @@
     "clean": "rimraf .aws-sam .vscode",
     "prebuild": "rimraf .aws-sam .vscode",
     "prewatch": "rimraf .aws-sam .vscode",
-    "watch": "webpack-cli -w"
+    "watch": "webpack-cli -w",
+    "start": "sam local start-api"
   },
   "author": "",
   "license": "ISC",
