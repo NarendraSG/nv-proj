@@ -19,6 +19,7 @@ jobs:
         id: get_commits
         run: |
           PR_COMMITS=$(git log --pretty=format:"%H" origin/${{ github.base_ref }}..HEAD | tail -n +2 | tr '\n' ' ')
+          echo "PR_COMMITS=$PR_COMMITS"
           echo "PR_COMMITS=$PR_COMMITS" >> $GITHUB_ENV
 
       - name: Analyze modified lines in each commit
