@@ -1,4 +1,4 @@
-name: PR Commit Analysis
+name: Analyze PR File Changes
 
 on:
   pull_request:
@@ -9,60 +9,63 @@ on:
 jobs:
   analyze-pr:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Ensure full history is fetched
+          fetch-depth: 0  # Fetch full history for accurate git log analysis
 
-      - name: Get list of commits in PR
-        id: get_commits
+      - name: Get PR changes
+        id: pr_changes
         run: |
-          PR_COMMITS=$(git log --pretty=format:"%H" origin/${{ github.base_ref }}..HEAD | tail -n +2 | tr '\n' ' ')
-          echo "PR_COMMITS=$PR_COMMITS"
-          echo "PR_COMMITS=$PR_COMMITS" >> $GITHUB_ENV
+          CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD)
+          echo "changed_files<<EOF" >> $GITHUB_ENV
+          echo "$CHANGED_FILES" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
 
-      - name: Analyze modified lines in each commit
+      - name: Analyze changes
         run: |
-          for commit in $PR_COMMITS; do
-            echo "Analyzing commit: $commit"
-
-            # Get changed files (filtering out metadata and ensuring file exists)
-            git show --pretty="" --name-status $commit | while read status file; do
-              # Ensure file is not empty and exists in the repo
-              if [[ -z "$file" || ! -f "$file" ]]; then
-                echo "Skipping missing file: $file"
-                continue
+          echo "Processing changed files:"
+          for file in $changed_files; do
+            echo "File: $file"
+            changed_lines=$(git diff -U0 origin/${{ github.base_ref }}...HEAD -- $file | grep -Po '^@@ -\d+,?\d* \+(\d+),?(\d*) @@' | awk '{print $2}' | sed 's/+/ /g')
+            
+            declare -a groups=()
+            start=-1
+            end=-1
+            
+            for line in $changed_lines; do
+              if [[ $start -eq -1 ]]; then
+                start=$line
+                end=$line
+              elif [[ $line -eq $((end+1)) ]]; then
+                end=$line
+              else
+                groups+=("$start,$end")
+                start=$line
+                end=$line
               fi
-
-              echo "Processing file: $file with status: $status"
-
-              # Extract modified line numbers
-              git diff --unified=0 $commit^ $commit -- $file | grep -E "^@@" | \
-                awk -F' ' '{print $2}' | sed 's/[^0-9,]//g' | while read line_range; do
-                  start_line=$(echo $line_range | cut -d, -f1)
-                  end_line=$((start_line + $(echo $line_range | cut -d, -f2) - 1))
-
-                  echo "Modified lines: $start_line-$end_line in $file"
-
-                  # Ensure valid line range before running git log -L
-                  if [[ -n "$start_line" && -n "$end_line" && "$start_line" -le "$end_line" ]]; then
-                    commit_history=$(git log -p -L $start_line,$end_line:$file 2>/dev/null | grep "commit " | awk '{print $2}')
-                  else
-                    echo "Invalid line range: $start_line-$end_line in $file"
-                    continue
-                  fi
-
-                  # Extract last two commits and compute time difference
-                  last_two_commits=($(echo "$commit_history" | head -n 2))
-                  if [[ ${#last_two_commits[@]} -eq 2 ]]; then
-                    date1=$(git show -s --format=%ct ${last_two_commits[0]})
-                    date2=$(git show -s --format=%ct ${last_two_commits[1]})
-                    duration=$((date1 - date2))
-                    echo "Duration between last two commits: $duration seconds"
-                  else
-                    echo "Not enough commit history for duration calculation"
-                  fi
-                done
+            done
+            
+            if [[ $start -ne -1 ]]; then
+              groups+=("$start,$end")
+            fi
+            
+            for group in "${groups[@]}"; do
+              echo "Analyzing history for lines: $group in $file"
+              commit_history=$(git log -p -L $group:$file)
+              
+              pr_commits=$(git log --pretty=format:"%H" origin/${{ github.base_ref }}...HEAD)
+              
+              filtered_commits=""
+              while read -r commit; do
+                if [[ ! " $pr_commits " =~ " $commit " ]] && ! git show --quiet --format=%P $commit | grep -q " "; then
+                  commit_time=$(git show -s --format=%ct $commit)
+                  pr_creation_time=$(date -d "${{ github.event.pull_request.created_at }}" +%s)
+                  duration=$((pr_creation_time - commit_time))
+                  echo "File: $file, Lines: $group, Commit: $commit, Duration: $duration seconds"
+                fi
+              done <<< "$commit_history"
             done
           done
