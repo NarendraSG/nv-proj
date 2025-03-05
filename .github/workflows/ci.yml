@@ -1,89 +1,120 @@
-name: Analyze PR File Changes
+name: Commit Analysis
 
 on:
+  push:
+    branches:
+      - main
   pull_request:
-    types:
-      - opened
-      - synchronize
+    branches:
+      - main
 
 jobs:
-  analyze-pr:
+  commit-analysis:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v3
         with:
-          fetch-depth: 0  # Fetch full history for accurate git log analysis
-
-      - name: Get PR changes
-        id: pr_changes
+          fetch-depth: 0  # Fetch full history for git blame to work correctly
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+      - name: Install Dependencies
         run: |
-          CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD)
-          echo "Changed Files: $CHANGED_FILES"
-          echo "changed_files<<EOF" >> $GITHUB_ENV
-          echo "$CHANGED_FILES" >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
+          pip install GitPython
+      - name: Make commit analysis script executable
+        run: chmod +x .github/scripts/commit_analysis.py
+      - name: Run commit analysis script
+        run: python .github/scripts/commit_analysis.py
 
-      - name: Debug line extraction
-        run: |
-          for file in $changed_files; do
-            echo "Processing file: $file"
-            changed_lines=$(git diff -U0 origin/${{ github.base_ref }}...HEAD -- $file | \
-                grep -Po '^@@ -\d+,?\d* \+\K\d+(,\d*)?' || echo "")
-            echo "Extracted changed lines for $file: $changed_lines"
-          done
-          
-      - name: Analyze changes
-        run: |
-          echo "Processing changed files:"
-          for file in $changed_files; do
-            echo "Processing file: $file"
-            changed_lines=$(git diff -U0 origin/${{ github.base_ref }}...HEAD -- $file | \
-                            grep -Po '^@@ -\d+,?\d* \+(\d+),?(\d*) @@' | \
-                            awk '{print $2}' | sed 's/+/ /g')
 
-            declare -a groups=()
-            sorted_lines=($(echo "$changed_lines" | tr ' ' '\n' | sort -n | uniq))
+# name: Analyze PR File Changes
 
-            start=-1
-            end=-1
+# on:
+#   pull_request:
+#     types:
+#       - opened
+#       - synchronize
 
-            for line in "${sorted_lines[@]}"; do
-              if [[ $line =~ ^[0-9]+$ ]]; then  # Ensure it's a valid number
-                if [[ $start -eq -1 ]]; then
-                  start=$line
-                  end=$line
-                elif [[ $line -eq $((end+1)) ]]; then
-                  end=$line
-                else
-                  groups+=("$start,$end")
-                  start=$line
-                  end=$line
-                fi
-              fi
-            done
+# jobs:
+#   analyze-pr:
+#     runs-on: ubuntu-latest
 
-            if [[ $start -ne -1 ]]; then
-              groups+=("$start,$end")
-            fi
+#     steps:
+#       - name: Checkout code
+#         uses: actions/checkout@v4
+#         with:
+#           fetch-depth: 0  # Fetch full history for accurate git log analysis
 
-            for group in "${groups[@]}"; do
-              if [[ $group =~ ^[0-9]+,[0-9]+$ ]]; then  # Validate before using
-                echo "Analyzing history for lines: $group in $file"
-                commit_history=$(git log -p -L $group:$file || echo "Error processing $file:$group")
-                pr_commits=$(git log --pretty=format:"%H" origin/${{ github.base_ref }}...HEAD)
+#       - name: Get PR changes
+#         id: pr_changes
+#         run: |
+#           CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD)
+#           echo "Changed Files: $CHANGED_FILES"
+#           echo "changed_files<<EOF" >> $GITHUB_ENV
+#           echo "$CHANGED_FILES" >> $GITHUB_ENV
+#           echo "EOF" >> $GITHUB_ENV
 
-                while read -r commit; do
-                  if [[ ! " $pr_commits " =~ " $commit " ]] && ! git show --quiet --format=%P $commit | grep -q " "; then
-                    commit_time=$(git show -s --format=%ct $commit)
-                    pr_creation_time=$(date -d "${{ github.event.pull_request.created_at }}" +%s)
-                    duration=$((pr_creation_time - commit_time))
-                    echo "File: $file, Lines: $group, Commit: $commit, Duration: $duration seconds"
-                  fi
-                done <<< "$commit_history"
-              else
-                echo "Skipping invalid line range: $group"
-              fi
-            done
-          done
+#       - name: Debug line extraction
+#         run: |
+#           for file in $changed_files; do
+#             echo "Processing file: $file"
+#             changed_lines=$(git diff -U0 origin/${{ github.base_ref }}...HEAD -- $file | \
+#                 grep -Po '^@@ -\d+,?\d* \+\K\d+(,\d*)?' || echo "")
+#             echo "Extracted changed lines for $file: $changed_lines"
+#           done
+
+#       - name: Analyze changes
+#         run: |
+#           echo "Processing changed files:"
+#           for file in $changed_files; do
+#             echo "Processing file: $file"
+#             changed_lines=$(git diff -U0 origin/${{ github.base_ref }}...HEAD -- $file | \
+#                             grep -Po '^@@ -\d+,?\d* \+(\d+),?(\d*) @@' | \
+#                             awk '{print $2}' | sed 's/+/ /g')
+
+#             declare -a groups=()
+#             sorted_lines=($(echo "$changed_lines" | tr ' ' '\n' | sort -n | uniq))
+
+#             start=-1
+#             end=-1
+
+#             for line in "${sorted_lines[@]}"; do
+#               if [[ $line =~ ^[0-9]+$ ]]; then  # Ensure it's a valid number
+#                 if [[ $start -eq -1 ]]; then
+#                   start=$line
+#                   end=$line
+#                 elif [[ $line -eq $((end+1)) ]]; then
+#                   end=$line
+#                 else
+#                   groups+=("$start,$end")
+#                   start=$line
+#                   end=$line
+#                 fi
+#               fi
+#             done
+
+#             if [[ $start -ne -1 ]]; then
+#               groups+=("$start,$end")
+#             fi
+
+#             for group in "${groups[@]}"; do
+#               if [[ $group =~ ^[0-9]+,[0-9]+$ ]]; then  # Validate before using
+#                 echo "Analyzing history for lines: $group in $file"
+#                 commit_history=$(git log -p -L $group:$file || echo "Error processing $file:$group")
+#                 pr_commits=$(git log --pretty=format:"%H" origin/${{ github.base_ref }}...HEAD)
+
+#                 while read -r commit; do
+#                   if [[ ! " $pr_commits " =~ " $commit " ]] && ! git show --quiet --format=%P $commit | grep -q " "; then
+#                     commit_time=$(git show -s --format=%ct $commit)
+#                     pr_creation_time=$(date -d "${{ github.event.pull_request.created_at }}" +%s)
+#                     duration=$((pr_creation_time - commit_time))
+#                     echo "File: $file, Lines: $group, Commit: $commit, Duration: $duration seconds"
+#                   fi
+#                 done <<< "$commit_history"
+#               else
+#                 echo "Skipping invalid line range: $group"
+#               fi
+#             done
+#           done
