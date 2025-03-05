@@ -30,8 +30,7 @@ jobs:
           for file in $changed_files; do
             echo "Processing file: $file"
             changed_lines=$(git diff -U0 origin/${{ github.base_ref }}...HEAD -- $file | \
-                            grep -Po '^@@ -\d+,?\d* \+(\d+),?(\d*) @@' | \
-                            awk '{print $2}' | sed 's/+/ /g')
+                grep -Po '^@@ -\d+,?\d* \+\K\d+(,\d*)?' || echo "")
             echo "Extracted changed lines for $file: $changed_lines"
           done
 
@@ -41,8 +40,7 @@ jobs:
           for file in $changed_files; do
             echo "File: $file"
             changed_lines=$(git diff -U0 origin/${{ github.base_ref }}...HEAD -- $file | \
-                            grep -Po '^@@ -\d+,?\d* \+(\d+),?(\d*) @@' | \
-                            awk '{print $2}' | sed 's/+/ /g')
+                grep -Po '^@@ -\d+,?\d* \+\K\d+(,\d*)?' || echo "")
 
             declare -a groups=()
             start=-1
