@@ -90,7 +90,8 @@ def analyze_commit():
                 # If there is a pending removal, treat this as a modification.
                 removal_line_num = removed_lines_buffer.pop(0)
                 debug_log(f"Added line with paired removal from old_line_num: {removal_line_num}")
-                blame_cmd = f'git blame -L {removal_line_num},{removal_line_num} HEAD^ -- "{current_file}"'
+                # Use porcelain mode (-p) so that the output includes 'author-time'
+                blame_cmd = f'git blame -p -L {removal_line_num},{removal_line_num} HEAD^ -- "{current_file}"'
                 blame_output = run_command(blame_cmd)
                 # Extract the author-time from the blame output.
                 m_time = re.search(r'author-time (\d+)', blame_output)
@@ -122,4 +123,3 @@ def analyze_commit():
 
 if __name__ == "__main__":
     analyze_commit()
-
