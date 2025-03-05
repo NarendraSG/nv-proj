@@ -26,22 +26,17 @@ jobs:
           for commit in $PR_COMMITS; do
             echo "Analyzing commit: $commit"
 
-            # Get the list of changed files with status (ignoring metadata lines)
-            git show --name-status $commit | awk 'NF==2' | while read status file; do
-              # Skip deleted files
-              if [[ $status == "D" ]]; then
-                continue
-              fi
-
-              # Ensure file exists before proceeding
-              if [[ ! -f "$file" ]]; then
+            # Get changed files (filtering out metadata and ensuring file exists)
+            git show --pretty="" --name-status $commit | while read status file; do
+              # Ensure file is not empty and exists in the repo
+              if [[ -z "$file" || ! -f "$file" ]]; then
                 echo "Skipping missing file: $file"
                 continue
               fi
 
               echo "Processing file: $file with status: $status"
 
-              # Get modified line ranges
+              # Extract modified line numbers
               git diff --unified=0 $commit^ $commit -- $file | grep -E "^@@" | \
                 awk -F' ' '{print $2}' | sed 's/[^0-9,]//g' | while read line_range; do
                   start_line=$(echo $line_range | cut -d, -f1)
@@ -49,10 +44,15 @@ jobs:
 
                   echo "Modified lines: $start_line-$end_line in $file"
 
-                  # Get commit history for these lines
-                  commit_history=$(git log -p -L $start_line,$end_line:$file 2>/dev/null | grep "commit " | awk '{print $2}')
+                  # Ensure valid line range before running git log -L
+                  if [[ -n "$start_line" && -n "$end_line" && "$start_line" -le "$end_line" ]]; then
+                    commit_history=$(git log -p -L $start_line,$end_line:$file 2>/dev/null | grep "commit " | awk '{print $2}')
+                  else
+                    echo "Invalid line range: $start_line-$end_line in $file"
+                    continue
+                  fi
 
-                  # Extract last two commits
+                  # Extract last two commits and compute time difference
                   last_two_commits=($(echo "$commit_history" | head -n 2))
                   if [[ ${#last_two_commits[@]} -eq 2 ]]; then
                     date1=$(git show -s --format=%ct ${last_two_commits[0]})
