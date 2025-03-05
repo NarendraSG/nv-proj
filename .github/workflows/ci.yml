@@ -1,23 +1,50 @@
-name: narendra-ci
+name: PR Commit Analysis
 
 on:
-  push:
-    branches:
-      - main
   pull_request:
-    paths-ignore:
-      - "CHANGELOG.md"
-  issue_comment:
-  workflow_dispatch:
+    types:
+      - opened
+      - synchronize
 
 jobs:
-  call-workflow:
-    uses: NarendraSG/github-action-workflows/.github/workflows/nodejs-ci.yml@master # if you want alternatively pin to tag version version
-    with:
-      package_manager: npm
-      build_command: echo "build..."
-      lint_command: echo "lint..."
-      dev_test_branch: main
-      run_dev_test: true
-      my_command: dir coverage
-    secrets: inherit
+  analyze-pr:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Ensure we fetch the full history
+
+      - name: Get list of commits in PR
+        id: get_commits
+        run: |
+          PR_COMMITS=$(git log --pretty=format:"%H" origin/${{ github.base_ref }}..HEAD | tail -n +2)
+          echo "PR_COMMITS=$PR_COMMITS" >> $GITHUB_ENV
+
+      - name: Analyze modified lines in each commit
+        run: |
+          for commit in $PR_COMMITS; do
+            echo "Analyzing commit: $commit"
+            git show --name-status $commit | tail -n +2 | while read status file; do
+              echo "Processing file: $file with status: $status"
+              if [[ $status == "D" ]]; then
+                continue  # Skip deleted files
+              fi
+              git diff --unified=0 $commit^ $commit -- $file | grep -E "^@@" | \
+                awk -F' ' '{print $2}' | sed 's/[^0-9,]//g' | while read line_range; do
+                  start_line=$(echo $line_range | cut -d, -f1)
+                  end_line=$((start_line + $(echo $line_range | cut -d, -f2) - 1))
+                  echo "Modified lines: $start_line-$end_line in $file"
+                  commit_history=$(git log -p -L $start_line,$end_line:$file | grep "commit " | awk '{print $2}')
+                  last_two_commits=($(echo "$commit_history" | head -n 2))
+                  if [[ ${#last_two_commits[@]} -eq 2 ]]; then
+                    date1=$(git show -s --format=%ct ${last_two_commits[0]})
+                    date2=$(git show -s --format=%ct ${last_two_commits[1]})
+                    duration=$((date1 - date2))
+                    echo "Duration between last two commits: $duration seconds"
+                  else
+                    echo "Not enough commit history for duration calculation"
+                  fi
+                done
+            done
+          done
