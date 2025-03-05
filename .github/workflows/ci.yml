@@ -1,9 +1,34 @@
+name: Analyze PR File Changes
+
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+
+jobs:
+  analyze-pr:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch full history for accurate git log analysis
+
+      - name: Get PR changes
+        id: pr_changes
+        run: |
+          CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD)
+          echo "changed_files<<EOF" >> $GITHUB_ENV
+          echo "$CHANGED_FILES" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
       - name: Analyze changes
         run: |
           echo "Processing changed files:"
           for file in $changed_files; do
             echo "File: $file"
-            
             changed_lines=$(git diff -U0 origin/${{ github.base_ref }}...HEAD -- $file | \
                             grep -Po '^@@ -\d+,?\d* \+(\d+),?(\d*) @@' | \
                             awk '{print $2}' | sed 's/+/ /g')
@@ -20,7 +45,7 @@
                 elif [[ $line -eq $((end+1)) ]]; then
                   end=$line
                 else
-                  groups+=( "$start,$end" )
+                  groups+=("$start,$end")
                   start=$line
                   end=$line
                 fi
@@ -28,14 +53,14 @@
             done
 
             if [[ $start -ne -1 ]]; then
-              groups+=( "$start,$end" )
+              groups+=("$start,$end")
             fi
 
             for group in "${groups[@]}"; do
               if [[ $group =~ ^[0-9]+,[0-9]+$ ]]; then  # Validate before using
                 echo "Analyzing history for lines: $group in $file"
                 commit_history=$(git log -p -L $group:$file || echo "Error processing $file:$group")
-                
+
                 pr_commits=$(git log --pretty=format:"%H" origin/${{ github.base_ref }}...HEAD)
 
                 while read -r commit; do
