@@ -13,7 +13,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Ensure we fetch the full history
+          fetch-depth: 0  # Ensure full history is fetched
 
       - name: Get list of commits in PR
         id: get_commits
@@ -25,17 +25,34 @@ jobs:
         run: |
           for commit in $PR_COMMITS; do
             echo "Analyzing commit: $commit"
-            git show --name-status $commit | tail -n +2 | while read status file; do
-              echo "Processing file: $file with status: $status"
+
+            # Get the list of changed files with status (ignoring metadata lines)
+            git show --name-status $commit | awk 'NF==2' | while read status file; do
+              # Skip deleted files
               if [[ $status == "D" ]]; then
-                continue  # Skip deleted files
+                continue
               fi
+
+              # Ensure file exists before proceeding
+              if [[ ! -f "$file" ]]; then
+                echo "Skipping missing file: $file"
+                continue
+              fi
+
+              echo "Processing file: $file with status: $status"
+
+              # Get modified line ranges
               git diff --unified=0 $commit^ $commit -- $file | grep -E "^@@" | \
                 awk -F' ' '{print $2}' | sed 's/[^0-9,]//g' | while read line_range; do
                   start_line=$(echo $line_range | cut -d, -f1)
                   end_line=$((start_line + $(echo $line_range | cut -d, -f2) - 1))
+
                   echo "Modified lines: $start_line-$end_line in $file"
-                  commit_history=$(git log -p -L $start_line,$end_line:$file | grep "commit " | awk '{print $2}')
+
+                  # Get commit history for these lines
+                  commit_history=$(git log -p -L $start_line,$end_line:$file 2>/dev/null | grep "commit " | awk '{print $2}')
+
+                  # Extract last two commits
                   last_two_commits=($(echo "$commit_history" | head -n 2))
                   if [[ ${#last_two_commits[@]} -eq 2 ]]; then
                     date1=$(git show -s --format=%ct ${last_two_commits[0]})
