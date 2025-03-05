@@ -20,9 +20,20 @@ jobs:
         id: pr_changes
         run: |
           CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD)
+          echo "Changed Files: $CHANGED_FILES"
           echo "changed_files<<EOF" >> $GITHUB_ENV
           echo "$CHANGED_FILES" >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
+
+      - name: Debug line extraction
+        run: |
+          for file in $changed_files; do
+            echo "Processing file: $file"
+            changed_lines=$(git diff -U0 origin/${{ github.base_ref }}...HEAD -- $file | \
+                            grep -Po '^@@ -\d+,?\d* \+(\d+),?(\d*) @@' | \
+                            awk '{print $2}' | sed 's/+/ /g')
+            echo "Extracted changed lines for $file: $changed_lines"
+          done
 
       - name: Analyze changes
         run: |
