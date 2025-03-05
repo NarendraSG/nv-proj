@@ -40,8 +40,8 @@ jobs:
               # Extract modified line numbers
               git diff --unified=0 $commit^ $commit -- $file | grep -E "^@@" | \
                 awk -F' ' '{print $2}' | sed 's/[^0-9,]//g' | while read line_range; do
-                  end_line=$(echo $line_range | cut -d, -f1)
-                  start_line=$((end_line + $(echo $line_range | cut -d, -f2) - 1))
+                  start_line=$(echo $line_range | cut -d, -f1)
+                  end_line=$((start_line + $(echo $line_range | cut -d, -f2) - 1))
 
                   echo "Modified lines: $start_line-$end_line in $file"
 
