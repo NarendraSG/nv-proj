@@ -33,21 +33,24 @@ jobs:
                 grep -Po '^@@ -\d+,?\d* \+\K\d+(,\d*)?' || echo "")
             echo "Extracted changed lines for $file: $changed_lines"
           done
-
+          
       - name: Analyze changes
         run: |
           echo "Processing changed files:"
           for file in $changed_files; do
-            echo "File: $file"
+            echo "Processing file: $file"
             changed_lines=$(git diff -U0 origin/${{ github.base_ref }}...HEAD -- $file | \
-                grep -Po '^@@ -\d+,?\d* \+\K\d+(,\d*)?' || echo "")
+                            grep -Po '^@@ -\d+,?\d* \+(\d+),?(\d*) @@' | \
+                            awk '{print $2}' | sed 's/+/ /g')
 
             declare -a groups=()
+            sorted_lines=($(echo "$changed_lines" | tr ' ' '\n' | sort -n | uniq))
+
             start=-1
             end=-1
 
-            for line in $changed_lines; do
-              if [[ $line =~ ^[0-9]+$ ]]; then  # Ensure it's a positive integer
+            for line in "${sorted_lines[@]}"; do
+              if [[ $line =~ ^[0-9]+$ ]]; then  # Ensure it's a valid number
                 if [[ $start -eq -1 ]]; then
                   start=$line
                   end=$line
@@ -69,7 +72,6 @@ jobs:
               if [[ $group =~ ^[0-9]+,[0-9]+$ ]]; then  # Validate before using
                 echo "Analyzing history for lines: $group in $file"
                 commit_history=$(git log -p -L $group:$file || echo "Error processing $file:$group")
-
                 pr_commits=$(git log --pretty=format:"%H" origin/${{ github.base_ref }}...HEAD)
 
                 while read -r commit; do
