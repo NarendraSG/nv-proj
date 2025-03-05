@@ -51,18 +51,21 @@ def analyze_commit():
                 old_line_num = int(m.group(1))
                 new_line_num = int(m.group(3))
                 removed_lines_buffer = []  # Reset for the new hunk
+        # Skip processing lines if we haven't encountered a hunk header yet
+        elif old_line_num is None or new_line_num is None:
+            continue
         elif line.startswith(" "):
             # Context line: both line numbers increment.
             old_line_num += 1
             new_line_num += 1
         elif line.startswith("-"):
-            # A removed line from the old file; record its line number for a potential modification.
+            # A removed line from the old file; record its line number.
             removed_lines_buffer.append(old_line_num)
             old_line_num += 1
         elif line.startswith("+"):
             # An added line.
             if removed_lines_buffer:
-                # If there is a pending removal, we treat this addition as a modification of that removed line.
+                # If there is a pending removal, treat this as a modification.
                 removal_line_num = removed_lines_buffer.pop(0)
                 # Run git blame on the HEAD^ version for the original file at the specific line.
                 blame_cmd = f'git blame -L {removal_line_num},{removal_line_num} HEAD^ -- "{current_file}"'
