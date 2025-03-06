@@ -1,23 +1,25 @@
-name: narendra-ci
+name: Commit Analysis
 
 on:
-  push:
-    branches:
-      - main
   pull_request:
-    paths-ignore:
-      - "CHANGELOG.md"
-  issue_comment:
-  workflow_dispatch:
+    types: [opened, synchronize]
 
 jobs:
-  call-workflow:
-    uses: NarendraSG/github-action-workflows/.github/workflows/nodejs-ci.yml@master # if you want alternatively pin to tag version version
-    with:
-      package_manager: npm
-      build_command: echo "build..."
-      lint_command: echo "lint..."
-      dev_test_branch: main
-      run_dev_test: true
-      my_command: dir coverage
-    secrets: inherit
+  commit-analysis:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Fetch full history for git blame to work correctly
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+      - name: Install Dependencies
+        run: |
+          pip install GitPython
+      - name: Make commit analysis script executable
+        run: chmod +x .github/scripts/commit_analysis.py
+      - name: Run commit analysis script
+        run: python .github/scripts/commit_analysis.py
