@@ -25,10 +25,10 @@ def run_command(cmd):
         return ""
 
 def get_commit_list():
-    """Gets a list of commit hashes in the current push."""
-    commit_range = run_command("git rev-parse origin/main")  # Adjust branch if needed
+    """Gets a list of commit hashes in the latest push."""
+    base_commit = run_command("git merge-base origin/main HEAD")  # Find common ancestor
     latest_commit = run_command("git rev-parse HEAD")
-    commit_list = run_command(f"git rev-list {commit_range}..{latest_commit}").splitlines()
+    commit_list = run_command(f"git rev-list {base_commit}..{latest_commit}").splitlines()
     commit_list.reverse()  # Process commits in chronological order
     debug_log(f"Commits in push: {commit_list}")
     return commit_list
