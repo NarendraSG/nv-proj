@@ -25,7 +25,7 @@ describe('ClientController (e2e)', () => {
 		expect(2).toBe(2);
     });
 
-    it('/client (POST) create client', async () => {
+    it('/client (POSTED) create client', async () => {
 		expect(2).toBe(2);
     });
 
