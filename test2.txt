@@ -2,12 +2,4 @@ hello
 this is modified
 this is good and modified
 added new line
-c1
-c1
-c1
-c4
-c3
-c3
-c5
-c5
 
