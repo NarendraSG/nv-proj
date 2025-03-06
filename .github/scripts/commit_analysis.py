@@ -10,7 +10,7 @@ DEBUG = True
 # THIRTY_DAYS = timedelta(days=30)
 # THIRTY_DAYS = timedelta(seconds=30)
 # THIRTY_DAYS = timedelta(seconds=100)
-THIRTY_DAYS = timedelta(seconds=100)
+THIRTY_DAYS = timedelta(seconds=200)
 
 def debug_log(message):
     if DEBUG:
