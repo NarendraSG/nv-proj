@@ -3,7 +3,9 @@ line 2
 line 3
 ln4
 ln5
-ln6
+c1
+c1
+c1
 ln7
 ln8
 ln9
