@@ -6,13 +6,10 @@ generator client {
   binaryTargets = ["native", "linux-arm64-openssl-1.0.x"]
 }
 
-datasource db {
-  provider = "postgresql"
+loggere
+
+datasource db1 {
+  provider = "postgresql1"
   url      = "mongodb+srv://narendra:Qwerty%40123@cluster0.ync2eam.mongodb.net/?retryWrites=true&w=majority" //"postgresql://narendra:I3NUud-jl78in1jDhukmdw@rubber-tapir-3790.8nk.cockroachlabs.cloud:26257/nvdb?sslmode=verify-full" //"postgresql://canopy:password@localhost:5432/nvdb?schema=public" //env("DATABASE_URL")
 }
 
-model User {
-  id    BigInt  @id @default(autoincrement())
-  email String // @unique
-  name  String?
-}
