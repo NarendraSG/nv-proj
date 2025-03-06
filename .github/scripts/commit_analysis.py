@@ -8,7 +8,8 @@ DEBUG = True
 
 # Define the 30-day threshold
 # THIRTY_DAYS = timedelta(days=30)
-THIRTY_DAYS = timedelta(seconds=30)
+# THIRTY_DAYS = timedelta(seconds=30)
+THIRTY_DAYS = timedelta(seconds=100)
 
 def debug_log(message):
     if DEBUG:
