@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Per Commit Analysis
+# Per Commit Analysis - considered ONLY REMOVED lines cases in this
 import subprocess
 import re
 from datetime import datetime, timedelta
