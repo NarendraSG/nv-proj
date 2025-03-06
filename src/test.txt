@@ -5,7 +5,10 @@ ln4
 ln5
 c1
 c1
-c1
+c2
 ln7
 ln8
 ln9
+c2
+c2
+c2
