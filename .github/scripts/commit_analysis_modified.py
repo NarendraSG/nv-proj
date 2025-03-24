@@ -86,11 +86,15 @@ def get_push_commits():
 
 def is_ignored_path(file_path):
     """Check if a file path should be ignored."""
+    debug_log(f"\nChecking path: {file_path}")
+    
     # Convert path to lowercase for case-insensitive comparison
     file_path = file_path.lower()
+    debug_log(f"Lowercase path: {file_path}")
     
     # Check if the file is in the ignored list
     if any(file_path.endswith(ignored.lower()) for ignored in IGNORED_FILES):
+        debug_log(f"File matches ignored file pattern: {file_path}")
         return True
         
     # Check for ignored folders (add any folders you want to ignore)
@@ -108,7 +112,16 @@ def is_ignored_path(file_path):
     
     # Split the path and check if any part matches ignored folders
     path_parts = file_path.split('/')
-    return any(folder.lower() in path_parts for folder in ignored_folders)
+    debug_log(f"Path parts: {path_parts}")
+    
+    # Check each part against ignored folders
+    for part in path_parts:
+        if part in ignored_folders:
+            debug_log(f"Found ignored folder '{part}' in path")
+            return True
+    
+    debug_log("Path is not ignored")
+    return False
 
 def analyze_specific_commit(commit_hash):
     """Analyzes a specific commit and returns analysis metrics."""
