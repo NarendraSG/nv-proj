@@ -3,6 +3,7 @@
 import subprocess
 import re
 from datetime import datetime, timedelta
+import os
 
 # Set DEBUG to True to enable debug logs.
 DEBUG = True
@@ -33,18 +34,19 @@ def get_commit_timestamp():
     return commit_ts
 
 def get_push_commits():
-    """Gets all non-merge commits in the push event."""
-    # Get the range of commits in this push
-    # For GitHub Actions, we can use the GITHUB_SHA environment variable
-    head_ref = run_command("git rev-parse HEAD").strip()
+    """Gets all non-merge commits in the PR."""
+    # Get the base and head SHAs from environment variables
+    base_sha = os.environ.get('PR_BASE_SHA')
+    head_sha = os.environ.get('PR_HEAD_SHA')
     
-    # Get the parent of the first commit in the push
-    # This will give us the commit before our push started
-    base_ref = run_command(f"git rev-parse {head_ref}~{1}").strip()
+    if not base_sha or not head_sha:
+        debug_log("No PR SHA environment variables found, falling back to HEAD")
+        head_sha = run_command("git rev-parse HEAD").strip()
+        base_sha = run_command(f"git rev-parse {head_sha}~1").strip()
     
-    # Get list of commits, excluding merges
-    commits = run_command(f"git rev-list --no-merges {base_ref}..{head_ref}").strip().split('\n')
-    debug_log(f"Found commits between {base_ref} and {head_ref}: {commits}")
+    # Get list of commits between base and head, excluding merges
+    commits = run_command(f"git rev-list --no-merges {base_sha}..{head_sha}").strip().split('\n')
+    debug_log(f"Found commits between {base_sha} and {head_sha}: {commits}")
     
     return [c for c in commits if c]  # Filter out empty strings
 
