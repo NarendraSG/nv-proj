@@ -97,6 +97,7 @@ def is_ignored_path(file_path):
     ignored_folders = {
         'node_modules/',
         '.git/',
+        '.github/',
         'dist/',
         'build/',
         'coverage/',
