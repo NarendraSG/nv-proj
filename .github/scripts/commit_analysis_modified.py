@@ -95,15 +95,15 @@ def is_ignored_path(file_path):
         
     # Check for ignored folders (add any folders you want to ignore)
     ignored_folders = {
-        'node_modules/',
-        '.git/',
-        '.github/',
-        'dist/',
-        'build/',
-        'coverage/',
-        '.husky/',
-        '.vscode/',
-        '.idea/'
+        'node_modules',
+        '.git',
+        '.github',
+        'dist',
+        'build',
+        'coverage',
+        '.husky',
+        '.vscode',
+        '.idea'
     }
     
     return any(folder.lower() in file_path.lower() for folder in ignored_folders)
