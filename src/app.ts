@@ -1,5 +1,6 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
 import { PrismaClient } from "./prisma";
+import { ConnectionIsNotSetError } from "typeorm";
 
 const prisma = new PrismaClient();
 
@@ -11,8 +12,10 @@ console.log("HELLO_WORLD");
 export const lambdaHandlerfgfd = async (
   event?: APIGatewayProxyEvent
 ): Promise<APIGatewayProxyResult> => {
-  // logger("HELLO_WORLD");
+  logger("HELLO_WORLD");
   let response: APIGatewayProxyResult;
+
+  console.log("HELLO_WORLD");
   try {
     const user = await prisma.user.create({
       data: {
@@ -37,5 +40,13 @@ export const lambdaHandlerfgfd = async (
     };
   }
 
+  console.log("HELLO_WORLD");
+  console.log(response);
+  console.log("HELLO_WORLD");
+  console.log("HELLO_WORLD");
+  console.log("HELLO_WORLD");
+  console.log("HELLO_WORLD");
+  console.log("HELLO_WORLD");
   return response;
+
 };

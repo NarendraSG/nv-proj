@@ -11,6 +11,22 @@ DEBUG = True
 # Define the 30-day threshold
 THIRTY_DAYS = timedelta(days=30)
 
+# Define files and folders to ignore
+IGNORED_FILES = {
+    # Files
+    '.env',
+    '.env.example',
+    '.gitignore',
+    'package.json',
+    'package-lock.json',
+    'pnpm-lock.json',
+    'tsconfig.json',
+    'tsconfig.node.json',
+    'tsconfig.app.json',
+    'tsconfig.spec.json',
+    'readme.md'
+}
+
 def debug_log(message):
     if DEBUG:
         print("[DEBUG]", message)
@@ -44,11 +60,53 @@ def get_push_commits():
         head_sha = run_command("git rev-parse HEAD").strip()
         base_sha = run_command(f"git rev-parse {head_sha}~1").strip()
     
-    # Get list of commits between base and head, excluding merges
-    commits = run_command(f"git rev-list --no-merges {base_sha}..{head_sha}").strip().split('\n')
-    debug_log(f"Found commits between {base_sha} and {head_sha}: {commits}")
+    debug_log(f"Base SHA: {base_sha}")
+    debug_log(f"Head SHA: {head_sha}")
     
-    return [c for c in commits if c]  # Filter out empty strings
+    # Get list of commits between base and head, excluding merges
+    # Using --no-merges to exclude merge commits and format to get commit hash and subject
+    cmd = f"git log --no-merges --format='%H %s' {base_sha}..{head_sha}"
+    output = run_command(cmd).strip()
+    
+    if not output:
+        debug_log("No commits found in range")
+        return []
+    
+    # Split output into lines and extract commit hashes
+    commits = []
+    for line in output.split('\n'):
+        if line.strip():
+            commit_hash = line.split()[0]
+            commit_subject = ' '.join(line.split()[1:])
+            debug_log(f"Found commit: {commit_hash[:8]} - {commit_subject}")
+            commits.append(commit_hash)
+    
+    debug_log(f"Total non-merge commits found: {len(commits)}")
+    return commits
+
+def is_ignored_path(file_path):
+    """Check if a file path should be ignored."""
+    # Convert path to lowercase for case-insensitive comparison
+    file_path = file_path.lower()
+    
+    # Check if the file is in the ignored list
+    if any(file_path.endswith(ignored.lower()) for ignored in IGNORED_FILES):
+        return True
+        
+    # Check for ignored folders (add any folders you want to ignore)
+    ignored_folders = {
+        'node_modules/',
+        '.git/',
+        '.github/',
+        'dist/',
+        'build/',
+        'coverage/',
+        '.husky/',
+        '.vscode/',
+        '.idea/'
+    }
+    
+    return any(folder.lower() in file_path.lower() for folder in ignored_folders)
 
 def analyze_specific_commit(commit_hash):
     """Analyzes a specific commit and returns analysis metrics."""
@@ -82,7 +140,12 @@ def analyze_specific_commit(commit_hash):
             m = re.search(r' b/(.+)$', line)
             if m:
                 current_file = m.group(1)
-                debug_log(f"Found new file: {current_file}")
+                # Skip processing if file should be ignored
+                if is_ignored_path(current_file):
+                    debug_log(f"Skipping ignored path: {current_file}")
+                    current_file = None
+                    continue
+                debug_log(f"Processing file: {current_file}")
         elif line.startswith('@@'):
             m = hunk_header_regex.match(line)
             if m:

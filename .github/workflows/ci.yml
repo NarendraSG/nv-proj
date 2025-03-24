@@ -12,7 +12,7 @@ on:
 jobs:
   commit-analysis:
     # Only run if the PR was merged (not just closed)
-    if: github.event.pull_request.merged == true
+    if: github.event.pull_request.merged == false
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
