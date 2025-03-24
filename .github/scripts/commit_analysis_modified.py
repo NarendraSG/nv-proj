@@ -35,11 +35,17 @@ def get_commit_timestamp():
 def get_push_commits():
     """Gets all non-merge commits in the push event."""
     # Get the range of commits in this push
-    base_ref = run_command("git rev-parse HEAD^").strip()
+    # For GitHub Actions, we can use the GITHUB_SHA environment variable
     head_ref = run_command("git rev-parse HEAD").strip()
+    
+    # Get the parent of the first commit in the push
+    # This will give us the commit before our push started
+    base_ref = run_command(f"git rev-parse {head_ref}~{1}").strip()
     
     # Get list of commits, excluding merges
     commits = run_command(f"git rev-list --no-merges {base_ref}..{head_ref}").strip().split('\n')
+    debug_log(f"Found commits between {base_ref} and {head_ref}: {commits}")
+    
     return [c for c in commits if c]  # Filter out empty strings
 
 def analyze_specific_commit(commit_hash):
