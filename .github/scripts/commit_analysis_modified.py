@@ -11,8 +11,9 @@ DEBUG = True
 # Define the 30-day threshold
 THIRTY_DAYS = timedelta(days=30)
 
-# Define files to ignore
+# Define files and folders to ignore
 IGNORED_FILES = {
+    # Files
     '.env',
     '.env.example',
     '.gitignore',
@@ -83,6 +84,29 @@ def get_push_commits():
     debug_log(f"Total non-merge commits found: {len(commits)}")
     return commits
 
+def is_ignored_path(file_path):
+    """Check if a file path should be ignored."""
+    # Convert path to lowercase for case-insensitive comparison
+    file_path = file_path.lower()
+    
+    # Check if the file is in the ignored list
+    if any(file_path.endswith(ignored.lower()) for ignored in IGNORED_FILES):
+        return True
+        
+    # Check for ignored folders (add any folders you want to ignore)
+    ignored_folders = {
+        'node_modules/',
+        '.git/',
+        'dist/',
+        'build/',
+        'coverage/',
+        '.husky/',
+        '.vscode/',
+        '.idea/'
+    }
+    
+    return any(folder.lower() in file_path.lower() for folder in ignored_folders)
+
 def analyze_specific_commit(commit_hash):
     """Analyzes a specific commit and returns analysis metrics."""
     debug_log(f"Analyzing commit: {commit_hash}")
@@ -115,9 +139,9 @@ def analyze_specific_commit(commit_hash):
             m = re.search(r' b/(.+)$', line)
             if m:
                 current_file = m.group(1)
-                # Skip processing if file is in ignored list
-                if current_file.split('/')[-1] in IGNORED_FILES:
-                    debug_log(f"Skipping ignored file: {current_file}")
+                # Skip processing if file should be ignored
+                if is_ignored_path(current_file):
+                    debug_log(f"Skipping ignored path: {current_file}")
                     current_file = None
                     continue
                 debug_log(f"Processing file: {current_file}")
