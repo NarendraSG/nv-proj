@@ -11,6 +11,21 @@ DEBUG = True
 # Define the 30-day threshold
 THIRTY_DAYS = timedelta(days=30)
 
+# Define files to ignore
+IGNORED_FILES = {
+    '.env',
+    '.env.example',
+    '.gitignore',
+    'package.json',
+    'package-lock.json',
+    'pnpm-lock.json',
+    'tsconfig.json',
+    'tsconfig.node.json',
+    'tsconfig.app.json',
+    'tsconfig.spec.json',
+    'readme.md'
+}
+
 def debug_log(message):
     if DEBUG:
         print("[DEBUG]", message)
@@ -100,7 +115,12 @@ def analyze_specific_commit(commit_hash):
             m = re.search(r' b/(.+)$', line)
             if m:
                 current_file = m.group(1)
-                debug_log(f"Found new file: {current_file}")
+                # Skip processing if file is in ignored list
+                if current_file.split('/')[-1] in IGNORED_FILES:
+                    debug_log(f"Skipping ignored file: {current_file}")
+                    current_file = None
+                    continue
+                debug_log(f"Processing file: {current_file}")
         elif line.startswith('@@'):
             m = hunk_header_regex.match(line)
             if m:
