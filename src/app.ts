@@ -1,5 +1,6 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
 import { PrismaClient } from "./prisma";
+import { ConnectionIsNotSetError } from "typeorm";
 
 const prisma = new PrismaClient();
 
@@ -36,5 +37,13 @@ export const lambdaHandlerfgfd = async (
     };
   }
 
+  console.log("HELLO_WORLD");
+  console.log(response);
+  console.log("HELLO_WORLD");
+  console.log("HELLO_WORLD");
+  console.log("HELLO_WORLD");
+  console.log("HELLO_WORLD");
+  console.log("HELLO_WORLD");
   return response;
+
 };
