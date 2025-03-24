@@ -92,3 +92,8 @@ if __name__ == "__main__":
     commits = get_commit_list()
     for commit in commits:
         analyze_commit(commit)
+
+
+
+
+        
