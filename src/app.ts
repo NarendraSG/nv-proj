@@ -3,6 +3,8 @@ import { PrismaClient } from "./prisma";
 
 const prisma = new PrismaClient();
 
+console.log("HELLO_WORLD");
+
 export const lambdaHandlerfgfd = async (
   event?: APIGatewayProxyEvent
 ): Promise<APIGatewayProxyResult> => {
@@ -12,14 +14,14 @@ export const lambdaHandlerfgfd = async (
     const user = await prisma.user.create({
       data: {
         name: "Alice",
-        email: "alice@prisma.io",
+        email: "alice@prisma.io123",
       },
     });
 
     response = {
       statusCode: 200,
       body: JSON.stringify({
-        message: `hello world from function1 qwerwtr`,
+        message: `hello world from function1 qwerwtr123`,
       }),
     };
   } catch (err: unknown) {

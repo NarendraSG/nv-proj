@@ -2,10 +2,17 @@ name: Commit Analysis
 
 on:
   pull_request:
+    # types: [closed]
     types: [opened, synchronize]
+    branches:
+      - main  # or master, depending on your default branch name
+      - master
+      - feat/qwerty
 
 jobs:
   commit-analysis:
+    # Only run if the PR was merged (not just closed)
+    if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -20,6 +27,9 @@ jobs:
         run: |
           pip install GitPython
       - name: Make commit analysis script executable
-        run: chmod +x .github/scripts/commit_analysis.py
+        run: chmod +x .github/scripts/commit_analysis_modified.py
       - name: Run commit analysis script
-        run: python .github/scripts/commit_analysis.py
+        env:
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: python .github/scripts/commit_analysis_modified.py
