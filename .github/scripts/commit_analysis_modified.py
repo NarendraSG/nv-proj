@@ -32,15 +32,32 @@ def get_commit_timestamp():
     debug_log(f"Commit timestamp: {commit_ts}")
     return commit_ts
 
-def analyze_commit():
-    commit_time = get_commit_timestamp()
-    diff_output = run_command("git diff HEAD^ HEAD")
+def get_push_commits():
+    """Gets all non-merge commits in the push event."""
+    # Get the range of commits in this push
+    base_ref = run_command("git rev-parse HEAD^").strip()
+    head_ref = run_command("git rev-parse HEAD").strip()
+    
+    # Get list of commits, excluding merges
+    commits = run_command(f"git rev-list --no-merges {base_ref}..{head_ref}").strip().split('\n')
+    return [c for c in commits if c]  # Filter out empty strings
+
+def analyze_specific_commit(commit_hash):
+    """Analyzes a specific commit and returns analysis metrics."""
+    debug_log(f"Analyzing commit: {commit_hash}")
+    
+    # Get the commit timestamp for this specific commit
+    ts_str = run_command(f"git show -s --format=%ct {commit_hash}").strip()
+    commit_time = datetime.fromtimestamp(int(ts_str))
+    
+    # Get the diff for this specific commit
+    diff_output = run_command(f"git diff {commit_hash}^ {commit_hash}")
     debug_log("Diff output received")
     
+    # Initialize counters
     new_feature_count = 0
     rewrite_count = 0
     refactor_count = 0
-    removed_only_count = 0
     
     current_file = None
     hunk_header_regex = re.compile(r'^@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@')
@@ -116,14 +133,43 @@ def analyze_commit():
             else:
                 refactor_count += 1
                 debug_log("Classified removed-only as refactor")
-            removed_only_count += 1
     
-    print("Commit Analysis Report:")
-    print("-----------------------")
-    print("New Features (new lines added):", new_feature_count)
-    print("Rewrites (modified code written ≤ 30 days ago):", rewrite_count)
-    print("Refactors (modified code written > 30 days ago):", refactor_count)
-    print("Removed Only (categorized separately):", removed_only_count)
+    # Return a dictionary with just the requested metrics
+    return {
+        "commitId": commit_hash,
+        "newFeatures": new_feature_count,
+        "rewrites": rewrite_count,
+        "refactors": refactor_count
+    }
 
 if __name__ == "__main__":
-    analyze_commit()
+    commits = get_push_commits()
+    debug_log(f"Found {len(commits)} commits to analyze")
+    
+    # Array to store commit analysis results
+    commit_analyses = []
+    
+    for commit in commits:
+        result = analyze_specific_commit(commit)
+        commit_analyses.append(result)
+        
+        # Print individual commit results
+        print(f"\nCommit {result['commitId'][:8]} Analysis:")
+        print("-" * 25)
+        print(f"New Features: {result['newFeatures']}")
+        print(f"Rewrites: {result['rewrites']}")
+        print(f"Refactors: {result['refactors']}")
+    
+    # Print summary of all commits
+    print("\nAnalysis Summary:")
+    print("-" * 25)
+    print(f"Total Commits Analyzed: {len(commit_analyses)}")
+    print(f"Total New Features: {sum(c['newFeatures'] for c in commit_analyses)}")
+    print(f"Total Rewrites: {sum(c['rewrites'] for c in commit_analyses)}")
+    print(f"Total Refactors: {sum(c['refactors'] for c in commit_analyses)}")
+    
+    # Print the raw array contents
+    print("\nRaw Analysis Data:")
+    print("-" * 25)
+    for commit_data in commit_analyses:
+        print(commit_data)
