@@ -106,7 +106,9 @@ def is_ignored_path(file_path):
         '.idea'
     }
     
-    return any(folder.lower() in file_path.lower() for folder in ignored_folders)
+    # Split the path and check if any part matches ignored folders
+    path_parts = file_path.split('/')
+    return any(folder.lower() in path_parts for folder in ignored_folders)
 
 def analyze_specific_commit(commit_hash):
     """Analyzes a specific commit and returns analysis metrics."""
