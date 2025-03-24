@@ -44,11 +44,29 @@ def get_push_commits():
         head_sha = run_command("git rev-parse HEAD").strip()
         base_sha = run_command(f"git rev-parse {head_sha}~1").strip()
     
-    # Get list of commits between base and head, excluding merges
-    commits = run_command(f"git rev-list --no-merges {base_sha}..{head_sha}").strip().split('\n')
-    debug_log(f"Found commits between {base_sha} and {head_sha}: {commits}")
+    debug_log(f"Base SHA: {base_sha}")
+    debug_log(f"Head SHA: {head_sha}")
     
-    return [c for c in commits if c]  # Filter out empty strings
+    # Get list of commits between base and head, excluding merges
+    # Using --no-merges to exclude merge commits and format to get commit hash and subject
+    cmd = f"git log --no-merges --format='%H %s' {base_sha}..{head_sha}"
+    output = run_command(cmd).strip()
+    
+    if not output:
+        debug_log("No commits found in range")
+        return []
+    
+    # Split output into lines and extract commit hashes
+    commits = []
+    for line in output.split('\n'):
+        if line.strip():
+            commit_hash = line.split()[0]
+            commit_subject = ' '.join(line.split()[1:])
+            debug_log(f"Found commit: {commit_hash[:8]} - {commit_subject}")
+            commits.append(commit_hash)
+    
+    debug_log(f"Total non-merge commits found: {len(commits)}")
+    return commits
 
 def analyze_specific_commit(commit_hash):
     """Analyzes a specific commit and returns analysis metrics."""
