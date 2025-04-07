@@ -127,6 +127,10 @@ def analyze_specific_commit(commit_hash):
     """Analyzes a specific commit and returns analysis metrics."""
     debug_log(f"Analyzing commit: {commit_hash}")
     
+    # Get repository and organization IDs from environment variables
+    repo_id = f"gh_repo_{os.environ.get('GITHUB_REPOSITORY_ID', '')}"
+    org_id = f"gh_org_{os.environ.get('GITHUB_ORGANIZATION_ID', '')}"
+    
     # Get the commit timestamp for this specific commit
     ts_str = run_command(f"git show -s --format=%ct {commit_hash}").strip()
     commit_time = datetime.fromtimestamp(int(ts_str))
@@ -223,8 +227,8 @@ def analyze_specific_commit(commit_hash):
     # Return a dictionary with the new format
     return {
         "commitId": commit_hash,
-        "repoId": os.environ.get('GITHUB_REPOSITORY_ID', ''),
-        "organizationId": os.environ.get('GITHUB_ORGANIZATION_ID', ''),
+        "repoId": repo_id,
+        "organizationId": org_id,
         "workbreakdown": {
             "newFeature": new_feature_count,
             "refactor": refactor_count,
