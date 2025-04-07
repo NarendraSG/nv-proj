@@ -86,11 +86,15 @@ def get_push_commits():
 
 def is_ignored_path(file_path):
     """Check if a file path should be ignored."""
+    debug_log(f"\nChecking path: {file_path}")
+    
     # Convert path to lowercase for case-insensitive comparison
     file_path = file_path.lower()
+    debug_log(f"Lowercase path: {file_path}")
     
     # Check if the file is in the ignored list
     if any(file_path.endswith(ignored.lower()) for ignored in IGNORED_FILES):
+        debug_log(f"File matches ignored file pattern: {file_path}")
         return True
         
     # Check for ignored folders (add any folders you want to ignore)
@@ -106,7 +110,18 @@ def is_ignored_path(file_path):
         '.idea'
     }
     
-    return any(folder.lower() in file_path.lower() for folder in ignored_folders)
+    # Split the path and check if any part matches ignored folders
+    path_parts = file_path.split('/')
+    debug_log(f"Path parts: {path_parts}")
+    
+    # Check each part against ignored folders
+    for part in path_parts:
+        if part in ignored_folders:
+            debug_log(f"Found ignored folder '{part}' in path")
+            return True
+    
+    debug_log("Path is not ignored")
+    return False
 
 def analyze_specific_commit(commit_hash):
     """Analyzes a specific commit and returns analysis metrics."""
@@ -205,12 +220,16 @@ def analyze_specific_commit(commit_hash):
                 refactor_count += 1
                 debug_log("Classified removed-only as refactor")
     
-    # Return a dictionary with just the requested metrics
+    # Return a dictionary with the new format
     return {
         "commitId": commit_hash,
-        "newFeatures": new_feature_count,
-        "rewrites": rewrite_count,
-        "refactors": refactor_count
+        "repoId": os.environ.get('REPO_ID', ''),
+        "organizationId": os.environ.get('ORG_ID', ''),
+        "workbreakdown": {
+            "newFeature": new_feature_count,
+            "refactor": refactor_count,
+            "rewrite": rewrite_count
+        }
     }
 
 if __name__ == "__main__":
@@ -224,23 +243,14 @@ if __name__ == "__main__":
         result = analyze_specific_commit(commit)
         commit_analyses.append(result)
         
-        # Print individual commit results
-        print(f"\nCommit {result['commitId'][:8]} Analysis:")
-        print("-" * 25)
-        print(f"New Features: {result['newFeatures']}")
-        print(f"Rewrites: {result['rewrites']}")
-        print(f"Refactors: {result['refactors']}")
+        # Print individual commit results in JSON format
+        print(f"\nCommit Analysis:")
+        print(result)
     
     # Print summary of all commits
     print("\nAnalysis Summary:")
     print("-" * 25)
     print(f"Total Commits Analyzed: {len(commit_analyses)}")
-    print(f"Total New Features: {sum(c['newFeatures'] for c in commit_analyses)}")
-    print(f"Total Rewrites: {sum(c['rewrites'] for c in commit_analyses)}")
-    print(f"Total Refactors: {sum(c['refactors'] for c in commit_analyses)}")
-    
-    # Print the raw array contents
-    print("\nRaw Analysis Data:")
-    print("-" * 25)
-    for commit_data in commit_analyses:
-        print(commit_data)
+    print(f"Total New Features: {sum(c['workbreakdown']['newFeature'] for c in commit_analyses)}")
+    print(f"Total Rewrites: {sum(c['workbreakdown']['rewrite'] for c in commit_analyses)}")
+    print(f"Total Refactors: {sum(c['workbreakdown']['refactor'] for c in commit_analyses)}")
