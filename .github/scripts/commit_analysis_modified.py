@@ -223,8 +223,8 @@ def analyze_specific_commit(commit_hash):
     # Return a dictionary with the new format
     return {
         "commitId": commit_hash,
-        "repoId": os.environ.get('REPO_ID', ''),
-        "organizationId": os.environ.get('ORG_ID', ''),
+        "repoId": os.environ.get('GITHUB_REPOSITORY_ID', ''),
+        "organizationId": os.environ.get('GITHUB_ORGANIZATION_ID', ''),
         "workbreakdown": {
             "newFeature": new_feature_count,
             "refactor": refactor_count,
