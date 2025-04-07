@@ -6,6 +6,9 @@ from datetime import datetime, timedelta
 
 # Set DEBUG to True to enable debug logs.
 DEBUG = True
+afsghgfjg
+gdfghr
+
 
 # Define the 30-day threshold
 THIRTY_DAYS = timedelta(days=30)
