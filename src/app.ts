@@ -17,6 +17,8 @@ export const lambdaHandlerfgfd = async (
 
   console.log("HELLO_WORLD");
   try {
+    let a = 10;
+    let b = 20;
     const user = await prisma.user.create({
       data: {
         name: "Alice",
