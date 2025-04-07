@@ -89,7 +89,7 @@ def is_ignored_path(file_path):
     debug_log(f"\nChecking path: {file_path}")
     
     # Convert path to lowercase for case-insensitive comparison
-    file_path = file_path.lower()
+    file_path = file_path.lower().strip('/')
     debug_log(f"Lowercase path: {file_path}")
     
     # Check if the file is in the ignored list
@@ -110,14 +110,26 @@ def is_ignored_path(file_path):
         '.idea'
     }
     
-    # Split the path and check if any part matches ignored folders
+    # Split the path and check each part
+    debug_log(f"File path: {file_path}")
     path_parts = file_path.split('/')
     debug_log(f"Path parts: {path_parts}")
     
-    # Check each part against ignored folders
-    for part in path_parts:
-        if part in ignored_folders:
-            debug_log(f"Found ignored folder '{part}' in path")
+    # Check if the path starts with or contains an ignored folder
+    for ignored_folder in ignored_folders:
+        # Check if path starts with ignored folder
+        if file_path.startswith(f"{ignored_folder}/"):
+            debug_log(f"Path starts with ignored folder: {ignored_folder}")
+            return True
+        
+        # Check if path contains ignored folder
+        if f"/{ignored_folder}/" in file_path:
+            debug_log(f"Path contains ignored folder: {ignored_folder}")
+            return True
+        
+        # Check if path is exactly the ignored folder
+        if file_path == ignored_folder:
+            debug_log(f"Path is ignored folder: {ignored_folder}")
             return True
     
     debug_log("Path is not ignored")
