@@ -13,7 +13,7 @@ export const lambdaHandlerfgfd = async (
   event?: APIGatewayProxyEvent
 ): Promise<APIGatewayProxyResult> => {
   logger("HELLO_WORLD");
-  let response: APIGatewayProxyResult;
+  let response: APIGatewayProxyResult; // this is fiigsdfds
 
   console.log("HELLO_WORLD");
   try {
@@ -27,7 +27,7 @@ export const lambdaHandlerfgfd = async (
     response = {
       statusCode: 200,
       body: JSON.stringify({
-        message: `hello world from function1 qwerwtr123`,
+        message: `hello world from function1 qwerty`,
       }),
     };
   } catch (err: unknown) {
