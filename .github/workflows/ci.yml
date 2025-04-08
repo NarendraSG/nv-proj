@@ -2,17 +2,15 @@ name: Commit Analysis
 
 on:
   pull_request:
-    # types: [closed]
-    types: [opened, synchronize]
+    types: [closed]
     branches:
-      - main  # or master, depending on your default branch name
+      - main
       - master
       - feat/qwerty
 
 jobs:
   commit-analysis:
-    # Only run if the PR was merged (not just closed)
-    if: github.event.pull_request.merged == false
+    if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -34,5 +32,5 @@ jobs:
           PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           GITHUB_REPOSITORY_ID: ${{ github.event.repository.id }}
           GITHUB_ORGANIZATION_ID: ${{ github.event.repository.owner.id }}
-          API_URL: https://smee.io/WM3TsYqgTQryj0Vu
+          API_URL: ${{ secrets.API_URL }}
         run: python .github/scripts/commit_analysis_modified.py
