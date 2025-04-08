@@ -27,6 +27,18 @@ IGNORED_FILES = {
     'readme.md'
 }
 
+IGNORED_FOLDERS = {
+        'node_modules',
+        '.git',
+        '.github',
+        'dist',
+        'build',
+        'coverage',
+        '.husky',
+        '.vscode',
+        '.idea'
+    }
+
 def debug_log(message):
     if DEBUG:
         print("[DEBUG]", message)
@@ -98,42 +110,13 @@ def is_ignored_path(file_path):
         return True
         
     # Check for ignored folders (add any folders you want to ignore)
-    ignored_folders = {
-        'node_modules',
-        '.git',
-        '.github',
-        'dist',
-        'build',
-        'coverage',
-        '.husky',
-        '.vscode',
-        '.idea'
-    }
-    
-    # Split the path and check each part
-    debug_log(f"File path: {file_path}")
-    path_parts = file_path.split('/')
-    debug_log(f"Path parts: {path_parts}")
-    
-    # Check if the path starts with or contains an ignored folder
-    for ignored_folder in ignored_folders:
-        # Check if path starts with ignored folder
-        if file_path.startswith(f"{ignored_folder}/"):
-            debug_log(f"Path starts with ignored folder: {ignored_folder}")
-            return True
-        
-        # Check if path contains ignored folder
-        if f"/{ignored_folder}/" in file_path:
-            debug_log(f"Path contains ignored folder: {ignored_folder}")
-            return True
-        
-        # Check if path is exactly the ignored folder
-        if file_path == ignored_folder:
-            debug_log(f"Path is ignored folder: {ignored_folder}")
-            return True
-    
-    debug_log("Path is not ignored")
-    return False
+    else if any(file_path.contains(ignored.lower()) for ignored in IGNORED_FOLDERS):
+        debug_log(f"File matches ignored folder pattern: {file_path}")
+        return True
+
+    else
+        debug_log("Path is not ignored")
+        return False
 
 def analyze_specific_commit(commit_hash):
     """Analyzes a specific commit and returns analysis metrics."""
