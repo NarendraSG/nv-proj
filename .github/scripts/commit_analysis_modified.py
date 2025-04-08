@@ -118,6 +118,32 @@ def is_ignored_path(file_path):
         debug_log("Path is not ignored")
         return False
 
+def get_file_chunks(diff_output):
+    """Organizes diff output into file-wise chunks."""
+    file_chunks = {}
+    current_file = None
+    current_chunks = []
+    
+    for line in diff_output.splitlines():
+        if line.startswith('diff --git'):
+            # If we have a previous file, save its chunks
+            if current_file:
+                file_chunks[current_file] = current_chunks
+            
+            # Start new file
+            m = re.search(r' b/(.+)$', line)
+            if m:
+                current_file = m.group(1)
+                current_chunks = [line]
+        elif current_file:
+            current_chunks.append(line)
+    
+    # Save the last file's chunks
+    if current_file and current_chunks:
+        file_chunks[current_file] = current_chunks
+    
+    return file_chunks
+
 def analyze_specific_commit(commit_hash):
     """Analyzes a specific commit and returns analysis metrics."""
     debug_log(f"Analyzing commit: {commit_hash}")
@@ -139,89 +165,79 @@ def analyze_specific_commit(commit_hash):
     rewrite_count = 0
     refactor_count = 0
     
-    current_file = None
-    hunk_header_regex = re.compile(r'^@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@')
+    # Get file-wise chunks
+    file_chunks = get_file_chunks(diff_output)
     
-    lines = diff_output.splitlines()
-    old_line_num = None
-    new_line_num = None
-    removed_lines_buffer = []
-    only_removed = True  # Flag to check if hunk only has removals
-
-    debug_log(f"Lines: {diff_output}")
-    
-    for i, line in enumerate(lines):
-        debug_log(f"Processing line {i}: {line}")
-        if line.startswith("diff --git"):
-            m = re.search(r' b/(.+)$', line)
-            if m:
-                current_file = m.group(1)
-                # Skip processing if file should be ignored
-                if is_ignored_path(current_file):
-                    debug_log(f"Skipping ignored path: {current_file}")
-                    current_file = None
-                    continue
-                debug_log(f"Processing file: {current_file}")
-        elif line.startswith('@@'):
-            m = hunk_header_regex.match(line)
-            if m:
-                old_line_num = int(m.group(1))
-                new_line_num = int(m.group(2))
-                removed_lines_buffer = []
-                only_removed = True  # Reset flag for new hunk
-                debug_log(f"Hunk header found. Starting old_line_num: {old_line_num}, new_line_num: {new_line_num}")
-        elif old_line_num is None or new_line_num is None:
+    # Process each file's chunks
+    for file_path, chunks in file_chunks.items():
+        # Skip if file should be ignored
+        if is_ignored_path(file_path):
+            debug_log(f"Skipping ignored file: {file_path}")
             continue
-        elif line.startswith(" "):
-            old_line_num += 1
-            new_line_num += 1
-            only_removed = False
-        elif line.startswith("-"):
-            debug_log(f"Removed line at old_line_num: {old_line_num}")
-            removed_lines_buffer.append(old_line_num)
-            old_line_num += 1
-        elif line.startswith("+"):
-            only_removed = False
-            if removed_lines_buffer:
-                removal_line_num = removed_lines_buffer.pop(0)
-                blame_cmd = f'git blame -p -L {removal_line_num},{removal_line_num} HEAD^ -- "{current_file}"'
-                blame_output = run_command(blame_cmd)
-                m_time = re.search(r'author-time (\d+)', blame_output)
-                if m_time:
-                    blame_timestamp = datetime.fromtimestamp(int(m_time.group(1)))
-                    delta = commit_time - blame_timestamp
-                    debug_log(f"Blame timestamp for {removal_line_num} in {current_file}: {blame_timestamp} (delta: {delta})")
-                    if delta <= THIRTY_DAYS:
-                        rewrite_count += 1
-                        debug_log("Classified as rewrite")
-                    else:
-                        refactor_count += 1
-                        debug_log("Classified as refactor")
+            
+        debug_log(f"Processing file: {file_path}")
+        
+        # Process chunks for this file
+        old_line_num = None
+        new_line_num = None
+        removed_lines_buffer = []
+        hunk_header_regex = re.compile(r'^@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@')
+        
+        for line in chunks:
+            if line.startswith('@@'):
+                m = hunk_header_regex.match(line)
+                if m:
+                    old_line_num = int(m.group(1))
+                    new_line_num = int(m.group(2))
+                    removed_lines_buffer = []
+                    debug_log(f"Hunk header found. Starting old_line_num: {old_line_num}, new_line_num: {new_line_num}")
+            elif old_line_num is None or new_line_num is None:
+                continue
+            elif line.startswith(" "):
+                old_line_num += 1
+                new_line_num += 1
+            elif line.startswith("-"):
+                debug_log(f"Removed line at old_line_num: {old_line_num}")
+                removed_lines_buffer.append(old_line_num)
+                old_line_num += 1
+            elif line.startswith("+"):
+                if removed_lines_buffer:
+                    removal_line_num = removed_lines_buffer.pop(0)
+                    blame_cmd = f'git blame -p -L {removal_line_num},{removal_line_num} HEAD^ -- "{file_path}"'
+                    blame_output = run_command(blame_cmd)
+                    m_time = re.search(r'author-time (\d+)', blame_output)
+                    if m_time:
+                        blame_timestamp = datetime.fromtimestamp(int(m_time.group(1)))
+                        delta = commit_time - blame_timestamp
+                        debug_log(f"Blame timestamp for {removal_line_num} in {file_path}: {blame_timestamp} (delta: {delta})")
+                        if delta <= THIRTY_DAYS:
+                            rewrite_count += 1
+                            debug_log("Classified as rewrite")
+                        else:
+                            refactor_count += 1
+                            debug_log("Classified as refactor")
+                    new_line_num += 1
                 else:
-                    debug_log("Could not extract author-time from blame output")
-                new_line_num += 1
-            else:
-                new_feature_count += 1
-                debug_log(f"Added line at new_line_num: {new_line_num} classified as new feature")
-                new_line_num += 1
+                    new_feature_count += 1
+                    debug_log(f"Added line at new_line_num: {new_line_num} classified as new feature")
+                    new_line_num += 1
+        
+        # Process remaining removals for this file
+        for removal_line_num in removed_lines_buffer:
+            blame_cmd = f'git blame -p -L {removal_line_num},{removal_line_num} HEAD^ -- "{file_path}"'
+            blame_output = run_command(blame_cmd)
+            m_time = re.search(r'author-time (\d+)', blame_output)
+            if m_time:
+                blame_timestamp = datetime.fromtimestamp(int(m_time.group(1)))
+                delta = commit_time - blame_timestamp
+                debug_log(f"Blame timestamp for removed line {removal_line_num} in {file_path}: {blame_timestamp} (delta: {delta})")
+                if delta <= THIRTY_DAYS:
+                    rewrite_count += 1
+                    debug_log("Classified removed-only as rewrite")
+                else:
+                    refactor_count += 1
+                    debug_log("Classified removed-only as refactor")
     
-    # Process removals with no corresponding additions
-    for removal_line_num in removed_lines_buffer:
-        blame_cmd = f'git blame -p -L {removal_line_num},{removal_line_num} HEAD^ -- "{current_file}"'
-        blame_output = run_command(blame_cmd)
-        m_time = re.search(r'author-time (\d+)', blame_output)
-        if m_time:
-            blame_timestamp = datetime.fromtimestamp(int(m_time.group(1)))
-            delta = commit_time - blame_timestamp
-            debug_log(f"Blame timestamp for removed line {removal_line_num} in {current_file}: {blame_timestamp} (delta: {delta})")
-            if delta <= THIRTY_DAYS:
-                rewrite_count += 1
-                debug_log("Classified removed-only as rewrite")
-            else:
-                refactor_count += 1
-                debug_log("Classified removed-only as refactor")
-    
-    # Return a dictionary with the new format
     return {
         "commitId": commit_hash,
         "repoId": repo_id,
