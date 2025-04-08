@@ -45,10 +45,7 @@ export const lambdaHandlerfgfd = async (
   console.log("HELLO_WORLD");
   console.log(response);
   console.log("HELLO_WORLD1");
-  console.log("HELLO_WORLD1");
-  console.log("HELLO_WORLD1");
-  console.log("HELLO_WORLD1");
-  console.log("HELLO_WORLD1");
+ 
   return response;
 
 };
