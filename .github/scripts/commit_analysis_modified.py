@@ -147,6 +147,8 @@ def analyze_specific_commit(commit_hash):
     new_line_num = None
     removed_lines_buffer = []
     only_removed = True  # Flag to check if hunk only has removals
+
+    debug_log(f"Lines: {lines}")
     
     for i, line in enumerate(lines):
         debug_log(f"Processing line {i}: {line}")
