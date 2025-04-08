@@ -110,11 +110,11 @@ def is_ignored_path(file_path):
         return True
         
     # Check for ignored folders (add any folders you want to ignore)
-    else if any(file_path.contains(ignored.lower()) for ignored in IGNORED_FOLDERS):
+    elif any(file_path.contains(ignored.lower()) for ignored in IGNORED_FOLDERS):
         debug_log(f"File matches ignored folder pattern: {file_path}")
         return True
 
-    else
+    else:
         debug_log("Path is not ignored")
         return False
 
