@@ -108,15 +108,25 @@ def is_ignored_path(file_path):
     if any(file_path.endswith(ignored.lower()) for ignored in IGNORED_FILES):
         debug_log(f"File matches ignored file pattern: {file_path}")
         return True
+    
+    # Split the path into parts
+    path_parts = file_path.split('/')
+    
+    # Check if any part of the path matches an ignored folder
+    for folder in IGNORED_FOLDERS:
+        folder = folder.lower()
+        # Check if the file is in an ignored folder
+        if folder in path_parts:
+            debug_log(f"File is in ignored folder: {folder}")
+            return True
         
-    # Check for ignored folders (add any folders you want to ignore)
-    elif any(ignored.lower() in file_path.lower() for ignored in IGNORED_FOLDERS):
-        debug_log(f"File matches ignored folder pattern: {file_path}")
-        return True
-
-    else:
-        debug_log("Path is not ignored")
-        return False
+        # Check if the file path starts with an ignored folder
+        if file_path.startswith(f"{folder}/"):
+            debug_log(f"File path starts with ignored folder: {folder}")
+            return True
+    
+    debug_log("Path is not ignored")
+    return False
 
 def get_file_chunks(diff_output):
     """Organizes diff output into file-wise chunks."""
