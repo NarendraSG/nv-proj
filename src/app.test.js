@@ -19,5 +19,21 @@ describe('ClientController (e2e)', () => {
 		expect(2).toBe(2);
     });
 
+  it('/client (POST) create client adgsfbd', async () => {
+    expect(2).toBe(2);
+  });
+
+  it('/client (POST) create client', async () => {
+    expect(2).toBe(2);
+  });
+
+  it('/client (POST) create client adgsfbd', async () => {
+    expect(2).toBe(2);
+  });
+
+  it('/client (POST) create client', async () => {
+    expect(2).toBe(2);
+  });
+
 
 });

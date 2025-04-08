@@ -25,7 +25,7 @@ jobs:
           python-version: '3.x'
       - name: Install Dependencies
         run: |
-          pip install GitPython
+          pip install GitPython requests
       - name: Make commit analysis script executable
         run: chmod +x .github/scripts/commit_analysis_modified.py
       - name: Run commit analysis script
@@ -34,4 +34,5 @@ jobs:
           PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           GITHUB_REPOSITORY_ID: ${{ github.event.repository.id }}
           GITHUB_ORGANIZATION_ID: ${{ github.event.repository.owner.id }}
+          API_URL: https://smee.io/WM3TsYqgTQryj0Vu
         run: python .github/scripts/commit_analysis_modified.py

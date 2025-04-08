@@ -4,6 +4,8 @@ import subprocess
 import re
 from datetime import datetime, timedelta
 import os
+import requests
+import json
 
 # Set DEBUG to True to enable debug logs.
 DEBUG = True
@@ -281,3 +283,23 @@ if __name__ == "__main__":
     print(f"Total New Features: {sum(c['workbreakdown']['newFeature'] for c in commit_analyses)}")
     print(f"Total Rewrites: {sum(c['workbreakdown']['rewrite'] for c in commit_analyses)}")
     print(f"Total Refactors: {sum(c['workbreakdown']['refactor'] for c in commit_analyses)}")
+
+    # Send data to API
+    api_url = os.environ.get('API_URL')
+    if api_url:
+        try:
+            debug_log(f"Sending data to API: {api_url}")
+            response = requests.post(
+                api_url,
+                json=commit_analyses,
+                headers={'Content-Type': 'application/json'}
+            )
+            response.raise_for_status()  # Raises exception for 4XX/5XX status codes
+            print("Successfully sent commit analyses to API")
+            debug_log(f"API Response: {response.status_code}")
+        except requests.exceptions.RequestException as e:
+            print(f"Error sending data to API: {str(e)}")
+            exit(1)  # Exit with error code
+    else:
+        print("No API_URL provided in environment variables")
+        exit(1)  # Exit with error code
