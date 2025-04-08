@@ -34,5 +34,5 @@ jobs:
           PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           GITHUB_REPOSITORY_ID: ${{ github.event.repository.id }}
           GITHUB_ORGANIZATION_ID: ${{ github.event.repository.owner.id }}
-          API_URL: http://localhost:3000/api/v1/commit-analysis
+          API_URL: https://smee.io/WM3TsYqgTQryj0Vu
         run: python .github/scripts/commit_analysis_modified.py
