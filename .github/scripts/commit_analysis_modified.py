@@ -6,6 +6,8 @@ from datetime import datetime, timedelta
 import os
 import requests
 import json
+import hmac
+import hashlib
 
 # Set DEBUG to True to enable debug logs.
 DEBUG = True
@@ -261,6 +263,22 @@ def analyze_specific_commit(commit_hash):
         }
     }
 
+def generate_hmac_signature(data, secret_key):
+    """Generate HMAC signature for the data."""
+    # Convert data to JSON string if it's not already
+    if isinstance(data, (dict, list)):
+        data = json.dumps(data, sort_keys=True)
+    
+    # Create HMAC signature using SHA256
+    signature = hmac.new(
+        secret_key.encode('utf-8'),
+        data.encode('utf-8'),
+        hashlib.sha256
+    ).hexdigest()
+    
+    debug_log(f"Generated HMAC signature: {signature}")
+    return signature
+
 if __name__ == "__main__":
     commits = get_push_commits()
     debug_log(f"Found {len(commits)} commits to analyze")
@@ -286,20 +304,39 @@ if __name__ == "__main__":
 
     # Send data to API
     api_url = os.environ.get('API_URL')
-    if api_url:
+    secret_key = os.environ.get('HMAC_SECRET')
+
+    debug_log(f"API URL: {api_url}")
+    debug_log(f"Secret Key: {secret_key}")
+
+    if api_url and secret_key:
         try:
+            # Convert data to JSON string with consistent ordering
+            json_data = json.dumps(commit_analyses, sort_keys=True)
+            
+            # Generate HMAC signature
+            signature = generate_hmac_signature(json_data, secret_key)
+            
             debug_log(f"Sending data to API: {api_url}")
             response = requests.post(
                 api_url,
-                json=commit_analyses,
-                headers={'Content-Type': 'application/json'}
+                data=json_data,  # Send the same JSON string used for HMAC
+                headers={
+                    'Content-Type': 'application/json',
+                    'X-Signature': signature
+                }
             )
-            response.raise_for_status()  # Raises exception for 4XX/5XX status codes
+            response.raise_for_status()
             print("Successfully sent commit analyses to API")
             debug_log(f"API Response: {response.status_code}")
         except requests.exceptions.RequestException as e:
             print(f"Error sending data to API: {str(e)}")
-            exit(1)  # Exit with error code
+            exit(1)
     else:
-        print("No API_URL provided in environment variables")
-        exit(1)  # Exit with error code
+        missing = []
+        if not api_url:
+            missing.append("API_URL")
+        if not secret_key:
+            missing.append("HMAC_SECRET")
+        print(f"Missing required environment variables: {', '.join(missing)}")
+        exit(1)
