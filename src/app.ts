@@ -9,6 +9,10 @@ console.log("HELLO_WORLD");
 
 
 
+
+
+
+
 export const lambdaHandlerfgfd = async (
   event?: APIGatewayProxyEvent
 ): Promise<APIGatewayProxyResult> => {
@@ -17,6 +21,10 @@ export const lambdaHandlerfgfd = async (
 
   console.log("HELLO_WORLD");
   try {
+
+
+
+    
     let a = 10;
     let b = 20;
     const user = await prisma.user.create({
