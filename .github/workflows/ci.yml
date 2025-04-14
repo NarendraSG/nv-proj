@@ -17,15 +17,25 @@ jobs:
         uses: actions/checkout@v3
         with:
           fetch-depth: 0  # Fetch full history for git blame to work correctly
+      
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.x'
+      
       - name: Install Dependencies
         run: |
           pip install GitPython requests
-      - name: Make commit analysis script executable
-        run: chmod +x .github/scripts/commit_analysis_modified.py
+
+      - name: Download script from S3
+        run: |
+          # Create scripts directory if it doesn't exist
+          mkdir -p .github/scripts
+          # Download the file using curl
+          curl -o .github/scripts/commit_analysis_modified.py https://pulse-email-assets.s3.eu-west-1.amazonaws.com/commit_analysis_modified.py
+          # Make the script executable
+          chmod +x .github/scripts/commit_analysis_modified.py
+      
       - name: Run commit analysis script
         env:
           PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
