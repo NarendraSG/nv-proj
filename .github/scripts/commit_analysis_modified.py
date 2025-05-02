@@ -28,7 +28,8 @@ IGNORED_FILES = {
     'tsconfig.node.json',
     'tsconfig.app.json',
     'tsconfig.spec.json',
-    'readme.md'
+    'readme.md',
+    'CHANGELOG.md'
 }
 
 IGNORED_FOLDERS = {
@@ -217,7 +218,7 @@ def analyze_specific_commit(commit_hash):
             elif line.startswith("+"):
                 if removed_lines_buffer:
                     removal_line_num = removed_lines_buffer.pop(0)
-                    blame_cmd = f'git blame -p -L {removal_line_num},{removal_line_num} HEAD^ -- "{file_path}"'
+                    blame_cmd = f'git blame -p -L {removal_line_num},{removal_line_num} {commit_hash}^ -- "{file_path}"'
                     blame_output = run_command(blame_cmd)
                     m_time = re.search(r'author-time (\d+)', blame_output)
                     if m_time:
@@ -238,7 +239,7 @@ def analyze_specific_commit(commit_hash):
         
         # Process remaining removals for this file
         for removal_line_num in removed_lines_buffer:
-            blame_cmd = f'git blame -p -L {removal_line_num},{removal_line_num} HEAD^ -- "{file_path}"'
+            blame_cmd = f'git blame -p -L {removal_line_num},{removal_line_num} {commit_hash}^ -- "{file_path}"'
             blame_output = run_command(blame_cmd)
             m_time = re.search(r'author-time (\d+)', blame_output)
             if m_time:
@@ -255,14 +256,13 @@ def analyze_specific_commit(commit_hash):
     return {
         "commitId": commit_hash,
         "repoId": repo_id,
-        "organizationId": org_id,
+        "orgId": org_id,
         "workbreakdown": {
             "newFeature": new_feature_count,
             "refactor": refactor_count,
             "rewrite": rewrite_count
         }
     }
-
 def generate_hmac_signature(data, secret_key):
     """Generate HMAC signature for the data."""
     # Convert data to JSON string if it's not already
@@ -326,12 +326,12 @@ if __name__ == "__main__":
                     'X-Signature': signature
                 }
             )
-            response.raise_for_status()
+            response.raise_for_status()  # Raises exception for 4XX/5XX status codes
             print("Successfully sent commit analyses to API")
             debug_log(f"API Response: {response.status_code}")
         except requests.exceptions.RequestException as e:
             print(f"Error sending data to API: {str(e)}")
-            exit(1)
+            exit(1)  # Exit with error code
     else:
         missing = []
         if not api_url:
@@ -339,4 +339,4 @@ if __name__ == "__main__":
         if not secret_key:
             missing.append("HMAC_SECRET")
         print(f"Missing required environment variables: {', '.join(missing)}")
-        exit(1)
+        exit(1)  # Exit with error code
