@@ -1,4 +1,4 @@
-name: Commit Analysis
+name: Pulse - WorkBreakdown
 
 on:
   pull_request:
